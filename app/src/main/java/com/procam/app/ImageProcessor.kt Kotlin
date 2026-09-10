@@ -1,0 +1,66 @@
+package com.procam.app
+
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.ColorMatrixColorFilter
+import android.graphics.Paint
+import android.net.Uri
+import android.util.Log
+import androidx.exifinterface.media.ExifInterface
+import java.io.OutputStream
+
+/**
+ * Применяет ColorMatrix-пресет физически к пикселям сохранённого JPEG,
+ * перезаписывая файл через ContentResolver (MediaStore Uri).
+ */
+object ImageProcessor {
+
+    fun applyPresetToUri(context: Context, uri: Uri, preset: Preset) {
+        try {
+            val resolver = context.contentResolver
+            val original = resolver.openInputStream(uri)?.use {
+                android.graphics.BitmapFactory.decodeStream(it)
+            } ?: return
+
+            val exifOrientation = resolver.openInputStream(uri)?.use { stream ->
+                ExifInterface(stream).getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL
+                )
+            } ?: ExifInterface.ORIENTATION_NORMAL
+
+            val result = Bitmap.createBitmap(original.width, original.height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(result)
+            val paint = Paint()
+            paint.colorFilter = ColorMatrixColorFilter(preset.colorMatrix())
+            canvas.drawBitmap(original, 0f, 0f, paint)
+
+            resolver.openOutputStream(uri, "wt")?.use { out: OutputStream ->
+                result.compress(Bitmap.CompressFormat.JPEG, 95, out)
+            }
+
+            // Восстанавливаем ориентацию EXIF, если требовалось
+            if (exifOrientation != ExifInterface.ORIENTATION_NORMAL) {
+                resolver.openFileDescriptor(uri, "rw")?.use { pfd ->
+                    val exif = ExifInterface(pfd.fileDescriptor)
+                    exif.setAttribute(ExifInterface.TAG_ORIENTATION, exifOrientation.toString())
+                    exif.saveAttributes()
+                }
+            }
+
+            original.recycle()
+            result.recycle()
+        } catch (e: Exception) {
+            Log.e("ImageProcessor", "Failed to apply preset", e)
+        }
+    }
+
+    fun loadPresetPreviewBitmap(source: Bitmap, preset: Preset): Bitmap {
+        val result = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(result)
+        val paint = Paint()
+        paint.colorFilter = ColorMatrixColorFilter(preset.colorMatrix())
+        canvas.drawBitmap(source, 0f, 0f, paint)
+        return result
+    }
+}
