@@ -16,6 +16,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var cameraController: CameraController
+    private var isRecording = false // Отслеживание состояния записи для обычной кнопки
 
     private val requiredPermissions = arrayOf(
         Manifest.permission.CAMERA,
@@ -87,8 +88,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyPreviewFilter(preset: Preset) {
-        // Простое приближение цветокоррекции превью через полупрозрачный оверлей.
-        // Точная цветокоррекция применяется физически к сохранённому фото/видео в EditorActivity.
         val overlayColor = when (preset) {
             Preset.NATURAL -> 0x00000000
             Preset.WARM_AMBER -> 0x22FF8A00
@@ -128,9 +127,11 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        binding.btnVideo.setOnCheckedChangeListener { _, checked ->
-            if (!::cameraController.isInitialized) return@setOnCheckedChangeListener
-            if (checked) {
+        // Исправлено: заменено на setOnClickListener для обычной кнопки, с переключением состояния записи
+        binding.btnVideo.setOnClickListener {
+            if (!::cameraController.isInitialized) return@setOnClickListener
+            
+            if (!isRecording) {
                 cameraController.startRecording(
                     onSaved = { uri ->
                         runOnUiThread { Toast.makeText(this, "Видео сохранено", Toast.LENGTH_SHORT).show() }
@@ -139,8 +140,12 @@ class MainActivity : AppCompatActivity() {
                         runOnUiThread { Toast.makeText(this, "Ошибка записи: ${e.message}", Toast.LENGTH_LONG).show() }
                     }
                 )
+                isRecording = true
+                binding.btnVideo.text = "Остановить"
             } else {
                 cameraController.stopRecording()
+                isRecording = false
+                binding.btnVideo.text = "Видео"
             }
         }
 
