@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.ProCam" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">#1A1A1A</item>
+        <item name="colorPrimaryDark">#000000</item>
+        <item name="colorAccent">#FF9500</item>
+    </style>
+
+    <style name="Theme.ProCam.Fullscreen" parent="Theme.ProCam">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+</resources>
