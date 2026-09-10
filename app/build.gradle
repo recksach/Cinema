@@ -20,7 +20,7 @@ android {
             minifyEnabled = false
         }
         debug {
-            MinifyEnabled = false
+            minifyEnabled = false
         }
     }
 
